@@ -13,12 +13,11 @@ enum LRCParser {
             let line = rawLine.trimmed
             guard !line.isEmpty else { continue }
 
-            let matches = regex.matches(in: line, range: NSRange(line.startIndex..., in: line))
+            let nsLine = line as NSString
+            let matches = regex.matches(in: line, range: NSRange(location: 0, length: nsLine.length))
             guard !matches.isEmpty else { continue }
 
-            let textStart = matches.last!.range.upperBound
-            guard let textRange = Range(textStart..<line.count, in: line) else { continue }
-            let text = String(line[textRange]).trimmed
+            let text = nsLine.substring(from: matches.last!.range.upperBound).trimmed
 
             for match in matches {
                 guard let minutesRange = Range(match.range(at: 1), in: line),

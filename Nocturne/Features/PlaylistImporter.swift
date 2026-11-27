@@ -55,8 +55,8 @@ final class PlaylistImporter {
     }
 
     /// M3U: строки #EXTINF:duration,Artist - Title
-    static func parseM3U(_ text: String) -> [(String, String)] {
-        var result: [(String, String)] = []
+    static func parseM3U(_ text: String) -> [(artist: String, title: String)] {
+        var result: [(artist: String, title: String)] = []
         for line in text.components(separatedBy: .newlines) {
             let trimmed = line.trimmed
             guard trimmed.hasPrefix("#EXTINF:") else { continue }
@@ -66,34 +66,34 @@ final class PlaylistImporter {
             let label = String(afterComma.dropFirst()).trimmed
             let parts = label.components(separatedBy: " - ")
             if parts.count >= 2 {
-                result.append((parts[0].trimmed, parts.dropFirst().joined(separator: " - ").trimmed))
+                result.append((artist: parts[0].trimmed, title: parts.dropFirst().joined(separator: " - ").trimmed))
             } else {
-                result.append(("", label))
+                result.append((artist: "", title: label))
             }
         }
         return result
     }
 
     /// CSV: title,artist (порядок или title;artist)
-    static func parseCSV(_ text: String) -> [(String, String)] {
-        var result: [(String, String)] = []
+    static func parseCSV(_ text: String) -> [(artist: String, title: String)] {
+        var result: [(artist: String, title: String)] = []
         for line in text.components(separatedBy: .newlines).dropFirst() {
             let parts = line.components(separatedBy: ",").map(\.trimmed)
             if parts.count >= 2 {
-                result.append((parts[1], parts[0]))
+                result.append((artist: parts[1], title: parts[0]))
             }
         }
         return result
     }
 
-    static func parseJSON(_ text: String) -> [(String, String)] {
+    static func parseJSON(_ text: String) -> [(artist: String, title: String)] {
         struct ExportEntry: Decodable { let artist: String?; let title: String? }
         struct Export: Decodable { let tracks: [ExportEntry]? }
         guard let data = text.data(using: .utf8),
               let export = try? JSONDecoder().decode(Export.self, from: data) else { return [] }
-        return (export.tracks ?? []).compactMap { entry in
+        return (export.tracks ?? []).compactMap { entry -> (artist: String, title: String)? in
             guard let title = entry.title else { return nil }
-            return (entry.artist ?? "", title)
+            return (artist: entry.artist ?? "", title: title)
         }
     }
 
@@ -129,7 +129,7 @@ final class PlaylistImporter {
 
     // MARK: - Save (с резолвом треков в источниках)
 
-    private func save(entries: [(String, String)], name: String) -> Playlist {
+    private func save(entries: [(artist: String, title: String)], name: String) -> Playlist {
         let playlist = store.createPlaylist(name: name.isEmpty ? "Импортированный плейлист" : name)
         Task { [weak self] in
             guard let self else { return }
@@ -148,7 +148,7 @@ final class PlaylistImporter {
     }
 
     /// Резолв: ищем трек в подключённых источниках (снача­ла точное совпадение).
-    private func resolveAndFill(entries: [(String, String)], playlistID: String) async {
+    private func resolveAndFill(entries: [(artist: String, title: String)], playlistID: String) async {
         var resolved: [Track] = []
         for entry in entries.prefix(300) {
             if let track = await search.findTrack(artist: entry.artist, title: entry.title) {

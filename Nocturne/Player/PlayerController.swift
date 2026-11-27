@@ -11,7 +11,7 @@ final class PlayerController: ObservableObject {
 
     @Published private(set) var currentTrack: Track?
     @Published private(set) var isPlaying = false
-    @Published private(set) var currentTime: TimeInterval = 0
+    @Published var currentTime: TimeInterval = 0
     @Published private(set) var isLoadingTrack = false
     @Published var queue: [Track] = []
     @Published var queueIndex: Int = 0

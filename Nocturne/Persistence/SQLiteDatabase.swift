@@ -38,7 +38,10 @@ final class SQLiteDatabase {
 
     func run(_ sql: String, _ bind: (Statement) -> Void) throws {
         try queue.sync {
-            let statement = try Statement(db: handle, sql: sql)
+            guard let db = handle else {
+                throw NSError(domain: "SQLite", code: 1, userInfo: [NSLocalizedDescriptionKey: "База закрыта"])
+            }
+            let statement = try Statement(db: db, sql: sql)
             defer { statement.finalize() }
             bind(statement)
             let code = sqlite3_step(statement.raw)
@@ -50,7 +53,10 @@ final class SQLiteDatabase {
 
     func query(_ sql: String, read: (Statement) -> Void, bind: (Statement) -> Void = { _ in }) throws {
         try queue.sync {
-            let statement = try Statement(db: handle, sql: sql)
+            guard let db = handle else {
+                throw NSError(domain: "SQLite", code: 1, userInfo: [NSLocalizedDescriptionKey: "База закрыта"])
+            }
+            let statement = try Statement(db: db, sql: sql)
             defer { statement.finalize() }
             bind(statement)
             while true {
@@ -93,7 +99,7 @@ final class SQLiteDatabase {
         func bindDouble(_ index: Int32, _ value: Double) { sqlite3_bind_double(raw, index, value) }
         func bindInt(_ index: Int32, _ value: Int64) { sqlite3_bind_int64(raw, index, value) }
         func bindBlob(_ index: Int32, _ value: Data) {
-            value.withUnsafeBytes { buffer in
+            _ = value.withUnsafeBytes { buffer in
                 sqlite3_bind_blob(raw, index, buffer.baseAddress, Int32(buffer.count), SQLiteDatabase.transient)
             }
         }

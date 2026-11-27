@@ -50,7 +50,7 @@ final class SpotifyProvider: MusicProvider {
         }
         let verifier = Self.randomURLSafeBase64(count: 64)
         let challenge = Self.base64URL(Data(SHA256.hash(data: Data(verifier.utf8))))
-        try await settings.setSecret(verifier, account: "spotify_verifier")
+        settings.setSecret(verifier, account: "spotify_verifier")
 
         var components = URLComponents(string: "https://accounts.spotify.com/authorize")!
         components.queryItems = [
@@ -235,13 +235,13 @@ final class SpotifyProvider: MusicProvider {
 
     // MARK: - PKCE utils
 
-    static func randomURLSafeBase64(count: Int) -> String {
+    nonisolated static func randomURLSafeBase64(count: Int) -> String {
         var bytes = [UInt8](repeating: 0, count: count)
         _ = SecRandomCopyBytes(kSecRandomDefault, count, &bytes)
         return base64URL(Data(bytes))
     }
 
-    static func base64URL(_ data: Data) -> String {
+    nonisolated static func base64URL(_ data: Data) -> String {
         data.base64EncodedString()
             .replacingOccurrences(of: "+", with: "-")
             .replacingOccurrences(of: "/", with: "_")

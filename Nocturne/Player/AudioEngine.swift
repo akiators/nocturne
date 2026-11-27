@@ -100,12 +100,28 @@ final class AudioEngine {
             voice.node.volume = 0
             voice.node.play()
             if fadeIn > 0 {
-                voice.node.setVolume(1.0, fadeTime: fadeIn)
+                fadeVoice(to: 1.0, duration: fadeIn, node: voice.node)
             } else {
                 voice.node.volume = 1.0
             }
             voices[voiceIndex] = voice
             scheduleNextSegment(voiceIndex: voiceIndex)
+        }
+    }
+
+    /// Плавное изменение громкости голоса (аналог setVolume(_:fadeTime:),
+    /// отсутствующего в свежих SDK) — шагами по таймеру, без блокировки очереди.
+    private func fadeVoice(to target: Float, duration: TimeInterval,
+                           node: AVAudioPlayerNode, completion: (() -> Void)? = nil) {
+        let start = node.volume
+        let steps = 24
+        let stepDuration = max(0.01, duration / Double(steps))
+        for step in 1...steps {
+            let progress = Float(step) / Float(steps)
+            DispatchQueue.global().asyncAfter(deadline: .now() + stepDuration * Double(step)) {
+                node.volume = start + (target - start) * progress
+                if step == steps { completion?() }
+            }
         }
     }
 
@@ -139,7 +155,7 @@ final class AudioEngine {
             }
 
             voice.node.scheduleBuffer(buffer, at: nil, options: []) { [self] in
-                workQueue.async {
+                workQueue.async { [self] in
                     guard voices.indices.contains(voiceIndex) else { return }
                     var updated = voices[voiceIndex]
                     updated.nextReadFrame += AVAudioFramePosition(toSchedule)
@@ -171,8 +187,8 @@ final class AudioEngine {
             guard voices.indices.contains(voiceIndex) else { return }
             var voice = voices[voiceIndex]
             if fadeOut > 0, voice.node.isPlaying {
-                voice.node.setVolume(0, fadeTime: fadeOut)
                 let node = voice.node
+                fadeVoice(to: 0, duration: fadeOut, node: node)
                 DispatchQueue.global().asyncAfter(deadline: .now() + fadeOut + 0.05) {
                     node.stop()
                     node.volume = 1
@@ -204,7 +220,12 @@ final class AudioEngine {
     func setVoiceVolume(_ volume: Float, voiceIndex: Int, fade: TimeInterval = 0) {
         workQueue.sync { [self] in
             guard voices.indices.contains(voiceIndex) else { return }
-            voices[voiceIndex].node.setVolume(volume, fadeTime: fade)
+            let node = voices[voiceIndex].node
+            if fade > 0 {
+                fadeVoice(to: volume, duration: fade, node: node)
+            } else {
+                node.volume = volume
+            }
         }
     }
 

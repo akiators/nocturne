@@ -50,7 +50,7 @@ struct WaveBackground: View {
 
     var body: some View {
         ZStack {
-            Color(Palette.background)
+            Palette.background
             Ellipse()
                 .fill(Palette.accent.opacity(0.35 * intensity))
                 .frame(width: 420, height: 420)

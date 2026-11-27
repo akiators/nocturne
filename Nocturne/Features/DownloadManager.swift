@@ -23,7 +23,7 @@ final class DownloadManager: ObservableObject {
         return dir
     }
 
-    var canDownload: (Track) -> Bool { track in
+    func canDownload(_ track: Track) -> Bool {
         track.provider == .local || (track.streamURL != nil && track.isPreview)
     }
 

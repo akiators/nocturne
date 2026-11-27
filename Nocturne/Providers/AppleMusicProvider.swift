@@ -14,8 +14,9 @@ final class AppleMusicProvider: MusicProvider {
     var setupHint: String { "Нажмите «Разрешить доступ», чтобы искать каталог Apple Music. Полное прослушивание требует подписки Apple Music (handoff)." }
 
     func search(_ query: String, limit: Int) async throws -> SearchResults {
-        var request = MusicCatalogSearchRequest(term: query, limit: limit)
-        request.types = [Song.self, Artist.self, Album.self]
+        var request = MusicCatalogSearchRequest(term: query,
+                                                types: [Song.self, Artist.self, Album.self])
+        request.limit = limit
         let response = try await request.response()
 
         let songs = response.songs.compactMap(mapSong)
@@ -36,7 +37,7 @@ final class AppleMusicProvider: MusicProvider {
 
     private func mapSong(_ song: Song) -> Track? {
         Track(provider: .appleMusic,
-              externalID: String(song.id),
+              externalID: song.id.rawValue,
               title: song.title,
               artist: song.artistName ?? "",
               album: song.albumTitle,
@@ -44,14 +45,14 @@ final class AppleMusicProvider: MusicProvider {
               artworkURL: song.artwork?.url(width: 320, height: 320),
               streamURL: song.previewAssets?.first?.url,
               isPreview: true,
-              year: song.year,
+              year: song.releaseDate.map { Calendar.current.component(.year, from: $0) },
               explicit: song.contentRating == .explicit)
     }
 
     func relatedTracks(for track: Track, limit: Int) async throws -> [Track] {
         // Поиск по исполнителю — простой законный аналог «похожих».
-        var request = MusicCatalogSearchRequest(term: track.artist, limit: limit + 2)
-        request.types = [Song.self]
+        var request = MusicCatalogSearchRequest(term: track.artist, types: [Song.self])
+        request.limit = limit + 2
         let response = try await request.response()
         return response.songs.compactMap(mapSong).filter { $0.id != track.id }.prefix(limit).map { $0 }
     }

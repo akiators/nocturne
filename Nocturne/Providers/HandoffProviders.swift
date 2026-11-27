@@ -3,6 +3,7 @@ import Foundation
 /// YouTube Music: официального публичного API воспроизведения не существует
 /// (DRM/ToS). Реализуем честные функции: поиск через YouTube Data API v3 (бесплатный
 /// ключ пользователя) и handoff в YouTube Music. Воспроизведение — не предоставляем.
+@MainActor
 final class YouTubeMusicProvider: MusicProvider {
     let id: ProviderID = .youTubeMusic
     let capabilities: ProviderCapabilities = [.search, .handoff, .auth]
