@@ -19,7 +19,7 @@ final class MusicKitPlaybackController: ObservableObject {
         guard isAuthorized else { return false }
         do {
             let subscription = try await MusicSubscription.current
-            return subscription?.canPlayCatalogContent ?? false
+            return subscription.canPlayCatalogContent
         } catch {
             return false
         }
@@ -46,7 +46,7 @@ final class MusicKitPlaybackController: ObservableObject {
     }
 
     func play(song: Song) async {
-        player.queue = MusicPlayer.Queue(for: [song])
+        player.queue = ApplicationMusicPlayer.Queue(for: [song])
         player.playbackTime = 0
         do {
             try await player.play()

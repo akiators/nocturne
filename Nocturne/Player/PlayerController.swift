@@ -46,6 +46,7 @@ final class PlayerController: ObservableObject {
     /// Режим Apple Music: стрим ведёт системный ApplicationMusicPlayer (подписчики).
     @Published private(set) var isMusicKitPlayback = false
     private let musicKit = MusicKitPlaybackController()
+    private let liveActivities = LiveActivityManager()
 
     private var currentVoice = 0
     private var originalQueue: [Track] = []
@@ -113,6 +114,9 @@ final class PlayerController: ObservableObject {
         isPlaying = false
         updateNowPlaying()
         persistState()
+        if let track = currentTrack {
+            liveActivities.update(track: track, isPlaying: false, elapsed: currentTime, force: true)
+        }
     }
 
     func resume() {
@@ -126,6 +130,9 @@ final class PlayerController: ObservableObject {
         isPlaying = true
         updateNowPlaying()
         startProgressTimer()
+        if let track = currentTrack {
+            liveActivities.update(track: track, isPlaying: true, elapsed: currentTime, force: true)
+        }
     }
 
     func next(auto: Bool = false) {
@@ -262,6 +269,7 @@ final class PlayerController: ObservableObject {
         currentTrack = nil
         currentTime = 0
         stopProgressTimer()
+        liveActivities.stop()
         updateNowPlaying(clear: true)
         persistState()
     }
@@ -413,6 +421,7 @@ final class PlayerController: ObservableObject {
             store.bumpArtist(track.artist, delta: 0.05)
             startProgressTimer()
             persistState()
+            liveActivities.start(track: track)
             await musicKit.play(song: song)
             return
         }
@@ -477,6 +486,7 @@ final class PlayerController: ObservableObject {
         updateNowPlaying()
         startProgressTimer()
         persistState()
+        liveActivities.start(track: track)
     }
 
     private func downloadToCache(url: URL, track: Track) async -> URL? {
@@ -575,6 +585,9 @@ final class PlayerController: ObservableObject {
                 handleVoiceFinished(natural: true)
                 return
             }
+            if let track = currentTrack {
+                liveActivities.update(track: track, isPlaying: true, elapsed: currentTime)
+            }
             return
         }
 
@@ -587,6 +600,9 @@ final class PlayerController: ObservableObject {
         }
         currentTime = elapsed
         updateNowPlayingLight()
+        if let track = currentTrack {
+            liveActivities.update(track: track, isPlaying: true, elapsed: elapsed)
+        }
     }
 
     private func freezeProgress() {

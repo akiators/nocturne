@@ -21,6 +21,10 @@ targets:
     platform: iOS
     sources:
       - path: Nocturne
+      - path: Shared
+    dependencies:
+      - target: NocturneWidgets
+        embed: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.nocturne.music
