@@ -49,6 +49,27 @@ targets:
         NSUserNotificationsUsageDescription: "Уведомления о новых треках в вашей волне."
         ITSAppUsesNonExemptEncryption: false
 
+  NocturneWidgets:
+    type: app-extension
+    platform: iOS
+    deploymentTarget:
+      iOS: "16.1"
+    sources:
+      - path: NocturneWidgets
+      - path: Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.nocturne.music.widgets
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        CODE_SIGNING_ALLOWED: "NO"
+    info:
+      path: NocturneWidgets/Info.plist
+      properties:
+        CFBundleDisplayName: Nocturne
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+
   NocturneTests:
     type: bundle.unit-test
     platform: iOS
