@@ -1,0 +1,76 @@
+name: iOS CI
+
+on:
+  push:
+    branches: [main, development]
+  pull_request:
+    branches: [main, development]
+  workflow_dispatch:
+
+jobs:
+  build-test:
+    name: Build & Test (macOS)
+    runs-on: macos-15
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Show Xcode and simulators
+        run: |
+          xcodebuild -version
+          xcrun simctl list devices available | grep -m 5 "iPhone"
+
+      - name: Resolve simulator destination
+        id: sim
+        run: |
+          DEVICE=$(xcrun simctl list devices available | grep -oE "iPhone [0-9]+(\s\([A-Za-z]+\))?" | head -1 | xargs)
+          echo "device=$DEVICE" >> "$GITHUB_OUTPUT"
+          echo "Using simulator: $DEVICE"
+
+      - name: Build (Debug, simulator)
+        run: |
+          set -o pipefail
+          xcodebuild -project Nocturne.xcodeproj \
+            -scheme Nocturne \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,name=${{ steps.sim.outputs.device }}" \
+            CODE_SIGNING_ALLOWED=NO \
+            build | xcbeautify
+
+      - name: Run unit tests
+        run: |
+          set -o pipefail
+          xcodebuild -project Nocturne.xcodeproj \
+            -scheme Nocturne \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,name=${{ steps.sim.outputs.device }}" \
+            CODE_SIGNING_ALLOWED=NO \
+            test | xcbeautify
+
+      - name: Build (Release, check deployment target)
+        run: |
+          set -o pipefail
+          xcodebuild -project Nocturne.xcodeproj \
+            -scheme Nocturne \
+            -configuration Release \
+            -destination "generic/platform=iOS Simulator" \
+            CODE_SIGNING_ALLOWED=NO \
+            build | xcbeautify
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            ~/Library/Developer/Xcode/DerivedData/**/Logs/test/*.xcresult
+          if-no-files-found: ignore
+          retention-days: 7

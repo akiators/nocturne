@@ -1,0 +1,24 @@
+# Xcode / xcodegen
+*.xcodeproj
+!project.yml
+xcuserdata/
+DerivedData/
+*.xcuserstate
+
+# macOS
+.DS_Store
+
+# SwiftPM
+.build/
+Packages/
+Package.resolved
+
+# Build artifacts
+build/
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Local research (не публиковать)
+scan/
+study/
