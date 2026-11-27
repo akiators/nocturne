@@ -26,7 +26,7 @@ final class LiveActivityManager {
         do {
             activity = try Activity<PlayerActivityAttributes>.request(
                 attributes: attributes,
-                state: state,
+                contentState: state,
                 pushType: nil)
         } catch {
             activity = nil

@@ -7,9 +7,11 @@ import Foundation
 @MainActor
 final class GeniusService {
     private let settings: SettingsStore
+    private let store: LibraryStore
     private let client = HTTPClient.shared
 
-    init(settings: SettingsStore) {
+    init(store: LibraryStore, settings: SettingsStore) {
+        self.store = store
         self.settings = settings
     }
 
@@ -18,7 +20,10 @@ final class GeniusService {
     struct SearchResponse: Decodable {
         struct Hit: Decodable {
             struct Result: Decodable {
-                struct PrimaryArtist: Decodable { let name: String? }
+                struct PrimaryArtist: Decodable {
+                    let id: Int?
+                    let name: String?
+                }
                 let id: Int
                 let fullTitle: String?
                 let url: String?
@@ -39,6 +44,7 @@ final class GeniusService {
         let id: Int
         let title: String
         let artist: String
+        let artistID: Int?
         let pageURL: String?
     }
 
@@ -55,6 +61,7 @@ final class GeniusService {
             SongHit(id: hit.result.id,
                     title: hit.result.fullTitle ?? "",
                     artist: hit.result.primaryArtist?.name ?? "",
+                    artistID: hit.result.primaryArtist?.id,
                     pageURL: hit.result.url)
         }
     }
@@ -82,6 +89,63 @@ final class GeniusService {
         let description: String?
         let releaseDate: String?
         let producers: [String]
+    }
+
+    // MARK: - Artist biography
+
+    struct ArtistResponse: Decodable {
+        struct ArtistBox: Decodable {
+            struct Artist: Decodable {
+                struct DescriptionBox: Decodable { let plain: String? }
+                let id: Int?
+                let name: String?
+                let description: DescriptionBox?
+                enum CodingKeys: String, CodingKey {
+                    case id, name, description
+                    case imageUrl = "image_url"
+                }
+            }
+            let artist: Artist?
+        }
+        let response: ArtistBox?
+    }
+
+    private struct ArtistBioCache: Codable {
+        var text: String
+        var fetchedAt: Date
+    }
+
+    private static let bioCacheDays = 30
+
+    /// Биография артиста: Genius /artists/{id} (описание, plain) с кэшем на 30 дней.
+    func artistBio(name: String) async -> String? {
+        let key = "artist_bio:\(name.lowercased().trimmed)"
+        if let json = store.kvString(key),
+           let data = json.data(using: .utf8),
+           let cached = try? JSONDecoder.standard.decode(ArtistBioCache.self, from: data),
+           cached.fetchedAt.isWithin(days: Self.bioCacheDays) {
+            return cached.text
+        }
+
+        guard isConfigured else { return nil }
+        do {
+            let hits = try await search(query: name)
+            guard let artistID = hits.first(where: { $0.artistID != nil })?.artistID else { return nil }
+            guard let token = settings.secret("genius_token"),
+                  let url = URL(string: "https://api.genius.com/artists/\(artistID)?text_format=plain") else { return nil }
+            let response = try await client.getJSON(url, as: ArtistResponse.self,
+                                                    headers: ["Authorization": "Bearer \(token)"])
+            guard let text = response.response?.artist?.description?.plain?.trimmed, !text.isEmpty else { return nil }
+
+            let cache = ArtistBioCache(text: text, fetchedAt: Date())
+            if let data = try? JSONEncoder.pretty.encode(cache),
+               let json = String(data: data, encoding: .utf8) {
+                store.kvSet(key, json)
+            }
+            return text
+        } catch {
+            return nil
+        }
     }
 
     /// Описание/факты трека по Genius (text_format=plain).

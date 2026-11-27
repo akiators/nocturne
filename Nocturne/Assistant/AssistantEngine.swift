@@ -28,15 +28,17 @@ final class AssistantEngine: ObservableObject {
     private let wave: WaveFeedService
     private let store: LibraryStore
     private let lyrics: LyricsService
+    private let genius: GeniusService
     private let stats: StatsService
 
     init(player: PlayerController, search: SearchService, wave: WaveFeedService,
-         store: LibraryStore, lyrics: LyricsService) {
+         store: LibraryStore, lyrics: LyricsService, genius: GeniusService) {
         self.player = player
         self.search = search
         self.wave = wave
         self.store = store
         self.lyrics = lyrics
+        self.genius = genius
         self.stats = StatsService(store: store)
     }
 
@@ -55,6 +57,7 @@ final class AssistantEngine: ObservableObject {
         case createPlaylist(description: String)
         case showStats
         case findLyrics(query: String)
+        case artistInfo(query: String)
         case fallbackSearch(query: String)
     }
 
@@ -91,6 +94,14 @@ final class AssistantEngine: ObservableObject {
         if contains(["по тексту", "строчке текста", "по строчке", "текст песни"]) {
             let query = strip(text, prefixes: ["найди", "поиск", "search", "трек", "песню"])
             return .findLyrics(query: query)
+        }
+
+        if contains(["биографи", "кто такой", "кто такая", "кто это", "об исполнителе",
+                     "о исполнителе", "расскажи о", "расскажи про", "who is"]) {
+            let query = strip(text, prefixes: ["расскажи о", "расскажи про", "биографию", "биография",
+                                               "кто такой", "кто такая", "кто это", "об исполнителе",
+                                               "о исполнителе", "who is"])
+            return .artistInfo(query: query)
         }
 
         if hasAny(["собери плейлист", "составь плейлист", "сделай плейлист", "плейлист под", "плейлист по",
@@ -235,6 +246,26 @@ final class AssistantEngine: ObservableObject {
             let tracks = hits.compactMap(\.track)
             let names = hits.prefix(5).map { "• \($0.artist) — \($0.title)" }.joined(separator: "\n")
             return ("Нашёл по тексту:\n\(names)", tracks, nil)
+
+        case .artistInfo(let query):
+            let name = query.trimmed
+            guard !name.isEmpty else {
+                return ("Назовите исполнителя: «расскажи о Земфире».", [], nil)
+            }
+            let bio = await genius.artistBio(name: name)
+            let (results, _) = await search.unifiedSearch(name, limit: 10)
+            var lines: [String] = []
+            if let bio, !bio.isEmpty {
+                let intro = bio.count > 700 ? String(bio.prefix(700)) + "…" : bio
+                lines.append(intro)
+            } else {
+                lines.append("Биография «\(name)» недоступна: добавьте бесплатный токен Genius в настройках, и я расскажу подробнее.")
+            }
+            if !results.tracks.isEmpty {
+                lines.append("Топ-треки:")
+                lines.append(results.tracks.prefix(5).map { "• \($0.artist) — \($0.title)" }.joined(separator: "\n"))
+            }
+            return (lines.joined(separator: "\n"), results.tracks, nil)
 
         case .fallbackSearch(let query):
             let (results, _) = await search.unifiedSearch(query, limit: 15)

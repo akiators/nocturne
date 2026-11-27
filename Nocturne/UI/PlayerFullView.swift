@@ -8,6 +8,7 @@ struct PlayerFullView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var activeSheet: Sheet? = nil
+    @State private var showArtistSheet = false
 
     enum Sheet: String, Identifiable {
         case queue, lyrics, equalizer, settings
@@ -53,6 +54,11 @@ struct PlayerFullView: View {
             case .lyrics: LyricsSheet()
             case .equalizer: EqualizerSheet()
             case .settings: PlayerSettingsSheet()
+            }
+        }
+        .sheet(isPresented: $showArtistSheet) {
+            if let artist = player.currentTrack?.artist {
+                ArtistSheet(artistName: artist)
             }
         }
     }
@@ -124,10 +130,24 @@ struct PlayerFullView: View {
                     .font(.title(21))
                     .foregroundColor(Palette.textPrimary)
                     .lineLimit(1)
-                Text(player.currentTrack?.artist ?? "Выберите трек в волне или поиске")
-                    .font(.body())
-                    .foregroundColor(Palette.textSecondary)
-                    .lineLimit(1)
+                Button {
+                    guard let artist = player.currentTrack?.artist, !artist.isEmpty else { return }
+                    Haptics.light()
+                    showArtistSheet = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Text(player.currentTrack?.artist ?? "Выберите трек в волне или поиске")
+                            .font(.body())
+                            .foregroundColor(Palette.textSecondary)
+                            .lineLimit(1)
+                        if player.currentTrack != nil {
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 10))
+                                .foregroundColor(Palette.textSecondary.opacity(0.7))
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
             }
             Spacer()
             if let handoff = player.currentTrack.flatMap({ environment.providers.handoffURL(for: $0) }),

@@ -12,6 +12,7 @@ final class AppEnvironment: ObservableObject {
     let search: SearchService
     let wave: WaveFeedService
     let lyrics: LyricsService
+    let genius: GeniusService
     let assistant: AssistantEngine
     let downloads: DownloadManager
     let stats: StatsService
@@ -46,10 +47,12 @@ final class AppEnvironment: ObservableObject {
         self.search = SearchService(registry: registry, store: store)
         self.wave = WaveFeedService(store: store, registry: registry, settings: settings)
         self.lyrics = LyricsService(store: store, settings: settings, search: search)
+        self.genius = GeniusService(store: store, settings: settings)
         self.stats = StatsService(store: store)
         self.importer = PlaylistImporter(store: store, registry: registry, search: search)
         self.backup = BackupService(store: store, settings: settings)
-        self.assistant = AssistantEngine(player: player, search: search, wave: wave, store: store, lyrics: lyrics)
+        self.assistant = AssistantEngine(player: player, search: search, wave: wave,
+                                         store: store, lyrics: lyrics, genius: genius)
 
         configureAudioSession()
         player.restoreStateIfNeeded()

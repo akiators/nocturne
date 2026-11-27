@@ -14,6 +14,7 @@ struct TrackRow: View {
     var subtitle: String? = nil
 
     @State private var showAddToPlaylist = false
+    @State private var showArtistSheet = false
     @State private var isFavorite = false
 
     var onPlay: (() -> Void)? = nil
@@ -87,6 +88,9 @@ struct TrackRow: View {
         .sheet(isPresented: $showAddToPlaylist) {
             AddToPlaylistSheet(track: track)
         }
+        .sheet(isPresented: $showArtistSheet) {
+            ArtistSheet(artistName: track.artist)
+        }
     }
 
     private var rowTitleColor: Color {
@@ -130,6 +134,12 @@ struct TrackRow: View {
             }
         } label: {
             Label("Радио по треку", systemImage: "dot.radiowaves.left.and.right")
+        }
+
+        Button {
+            showArtistSheet = true
+        } label: {
+            Label("Об исполнителе", systemImage: "person.crop.circle")
         }
 
         if downloads.canDownload(track) {

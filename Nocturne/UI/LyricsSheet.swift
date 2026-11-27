@@ -238,7 +238,7 @@ struct LyricsSheet: View {
     }
 
     private func loadGenius(track: Track) async {
-        let genius = GeniusService(settings: environment.settings)
+        let genius = GeniusService(store: environment.library, settings: environment.settings)
         guard genius.isConfigured else { return }
         if let hit = try? await genius.search(query: "\(track.artist) \(track.title)").first,
            let facts = try? await genius.songFacts(id: hit.id),

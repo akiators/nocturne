@@ -46,6 +46,7 @@ targets:
           - audio
         NSSupportsLiveActivities: true
         NSAppleMusicUsageDescription: "Доступ к медиатеке нужен, чтобы показать вашу музыку и играть локальные файлы."
+        NSMicrophoneUsageDescription: "Микрофон нужен, чтобы записать 10 секунд музыки рядом и распознать трек (ShazamKit)."
         NSUserNotificationsUsageDescription: "Уведомления о новых треках в вашей волне."
         ITSAppUsesNonExemptEncryption: false
 

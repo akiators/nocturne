@@ -18,6 +18,7 @@ struct SearchView: View {
     @State private var lyricHits: [LyricsService.LyricsSearchHit] = []
     @State private var providerErrors: [ProviderID: String] = [:]
     @State private var providerFilter: ProviderID?
+    @State private var showRecognition = false
 
     private let debouncer = Debouncer(delay: 0.4)
 
@@ -36,6 +37,9 @@ struct SearchView: View {
             }
             .background(Palette.background.ignoresSafeArea())
             .navigationBarHidden(true)
+            .sheet(isPresented: $showRecognition) {
+                RecognitionView()
+            }
         }
         .navigationViewStyle(.stack)
         .onAppear {
@@ -63,6 +67,14 @@ struct SearchView: View {
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .foregroundColor(Palette.textSecondary)
+                    }
+                } else {
+                    Button {
+                        Haptics.light()
+                        showRecognition = true
+                    } label: {
+                        Image(systemName: "mic.fill")
+                            .foregroundColor(Palette.accent)
                     }
                 }
             }
