@@ -50,9 +50,11 @@ final class SettingsStore: ObservableObject {
         if defaults.object(forKey: "crossfade_seconds") == nil { crossfadeSeconds = 4 }
         eqEnabled = defaults.bool(forKey: "eq_enabled")
         selectedPresetID = defaults.string(forKey: "eq_preset_id")
-        playbackSpeed = defaults.double(forKey: "playback_speed")
-        if defaults.object(forKey: "playback_speed") == nil || playbackSpeed < 0.5 || playbackSpeed > 2.0 {
+        let storedSpeed = defaults.double(forKey: "playback_speed")
+        if defaults.object(forKey: "playback_speed") == nil || storedSpeed < 0.5 || storedSpeed > 2.0 {
             playbackSpeed = 1.0
+        } else {
+            playbackSpeed = storedSpeed
         }
         translationTarget = defaults.string(forKey: "translation_target") ?? "ru"
         libreTranslateURL = defaults.string(forKey: "libretranslate_url") ?? ""
