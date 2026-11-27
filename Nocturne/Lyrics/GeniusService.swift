@@ -100,6 +100,7 @@ final class GeniusService {
                 let id: Int?
                 let name: String?
                 let description: DescriptionBox?
+                let imageUrl: String?
                 enum CodingKeys: String, CodingKey {
                     case id, name, description
                     case imageUrl = "image_url"

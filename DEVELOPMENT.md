@@ -34,7 +34,25 @@ xcodebuild -project Nocturne.xcodeproj -scheme Nocturne \
 4. Release build (проверка deployment target iOS 15)
 5. Артефакты xcresult (7 дней)
 
-Подписанный IPA: нужны сертификаты/профиль — добавить секреты `BUILD_CERTIFICATE_BASE64`, `P12_PASSWORD`, `KEYCHAIN_PASSWORD` и шаг экспорта (шаблон в ROADMAP). Сборка без подписи (`CODE_SIGNING_ALLOWED=NO`) работает без них.
+Подписанный IPA: нужны сертификаты/профиль — добавить секреты `BUILD_CERTIFICATE_BASE64`, `P12_PASSWORD`, `KEYCHAIN_PASSWORD`, `MOBILEPROVISION_BASE64` и шаг импорта перед архивацией. Сборка без подписи (`CODE_SIGNING_ALLOWED=NO`) работает без них.
+
+## IPA и установка на iPhone
+
+**Unsigned IPA** (задача `build-ipa` в CI): запускается вручную (`Actions → iOS CI → Run workflow`) или на теге `v*`. Артефакт `nocturne-unsigned-ipa` скачивается из завершённого прогона.
+
+Установка unsigned IPA (без платного аккаунта разработчика):
+- **Sideloadly** (Windows/macOS): перетащить IPA, ввести Apple ID → подпись бесплатным сертификатом (7 дней, до 3 приложений).
+- **AltStore / SideStore**: тот же принцип, переустановка по таймеру.
+- **TrollStore**: для поддерживаемых версий iOS без лимитов.
+
+**Подписанный IPA** (платный Apple Developer, $99/год): положить в Secrets репозитория:
+1. `BUILD_CERTIFICATE_BASE64` — base64 p12 (`certutil -encode cert.p12 cert.b64` на Windows), `P12_PASSWORD`;
+2. `MOBILEPROVISION_BASE64` — профиль provisioning (MusicKit + ShazamKit capabilities в App ID!);
+3. `KEYCHAIN_PASSWORD` — пароль временного keychain в CI.
+
+Затем перед шагом Archive добавить: импорт p12 в keychain, установку профиля в `Nocturne.mobileprovision`, замену `CODE_SIGNING_ALLOWED=NO` на `DEVELOPMENT_TEAM=<TEAM_ID>` и профиль через `xcodebuild -exportArchive -exportOptionsPlist`. Шаблон шагов закомментирован в ROADMAP.
+
+Важно: для MusicKit (полный стрим Apple Music) и ShazamKit на устройстве нужен App ID с включёнными capabilities — бесплатная (личная) команда в Xcode умеет включать их автоматически при первом запуске с устройством.
 
 ## Настройка ключей (всё опционально, бесплатно)
 

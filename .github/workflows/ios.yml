@@ -74,3 +74,48 @@ jobs:
             ~/Library/Developer/Xcode/DerivedData/**/Logs/test/*.xcresult
           if-no-files-found: ignore
           retention-days: 7
+
+  build-ipa:
+    name: Unsigned IPA (sideload-ready)
+    runs-on: macos-15
+    needs: build-test
+    # Собирается вручную или на теге (v*), чтобы не тратить минуты на каждый пуш.
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Archive (unsigned)
+        run: |
+          set -o pipefail
+          xcodebuild archive \
+            -project Nocturne.xcodeproj \
+            -scheme Nocturne \
+            -destination "generic/platform=iOS" \
+            -archivePath build/Nocturne.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY="" \
+            archive | xcbeautify
+
+      - name: Package unsigned IPA
+        run: |
+          mkdir -p build/Payload
+          cp -R "build/Nocturne.xcarchive/Products/Applications/Nocturne.app" build/Payload/
+          cd build
+          zip -qry Nocturne-unsigned.ipa Payload
+          ls -lh Nocturne-unsigned.ipa
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nocturne-unsigned-ipa
+          path: build/Nocturne-unsigned.ipa
+          retention-days: 30
