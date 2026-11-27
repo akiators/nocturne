@@ -28,7 +28,7 @@ final class PlayerController: ObservableObject {
         didSet { applySpeed(); persistSpeed() }
     }
     @Published private(set) var sleepRemaining: TimeInterval = 0
-    @Published var isSleepTimerOn: Bool { didSet { persistState() } }
+    @Published var isSleepTimerOn: Bool = false { didSet { persistState() } }
 
     /// Замыкание добирает продолжение очереди (My Wave), когда она близка к концу.
     var queueRefill: ((_ currentQueue: [Track]) async -> [Track])?
@@ -73,7 +73,6 @@ final class PlayerController: ObservableObject {
         engine.setMasterVolume(volume)
         engine.setSpeed(speed, voiceIndex: 0)
         engine.setSpeed(speed, voiceIndex: 1)
-        isSleepTimerOn = false
 
         setupRemoteCommands()
         observeInterruptions()
