@@ -3,7 +3,8 @@ import ShazamKit
 import AVFoundation
 
 /// Распознавание музыки через ShazamKit (бесплатно, локально по звуку вокруг).
-/// Использует SHManagedSession (iOS 17+): микрофон и буферизация под его контролем.
+/// SHManagedSession (iOS 17+) сам пишет звук и генерирует сигнатуры:
+/// `await session.result()` возвращает .match/.noMatch/.error, `cancel()` прерывает.
 /// На более старых версиях функция честно сообщает о недоступности.
 /// История хранится снаружи (UI пишет её в kv основного хранилища).
 @MainActor
@@ -57,26 +58,44 @@ final class RecognitionService: NSObject, ObservableObject {
 
     private func beginListening() {
         guard #available(iOS 17.0, *) else { return }
-        let audio = AVAudioSession.sharedInstance()
-        do {
-            try audio.setCategory(.playAndRecord, mode: .default, options: [.duckOthers])
-            try audio.setActive(true, options: .notifyOthersOnDeactivation)
-        } catch {
-            errorText = "Аудио недоступно: \(error.localizedDescription)"
-            return
-        }
 
         let session = SHManagedSession()
-        session.delegate = self
         self.session = session
-        session.start()
         isListening = true
 
-        // Страховочный таймаут: если совпадения нет — сообщаем и останавливаемся.
-        timeoutTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 20_000_000_000)
+        // Один цикл распознавания: сессия сама пишет звук до результата.
+        let matchTask = Task { [weak self] in
+            let result = await session.result()
             guard let self, self.isListening else { return }
-            self.errorText = "Записали 20 секунд, но трек не узнали. Попробуйте ближе к источнику звука."
+            switch result {
+            case .match(let match):
+                if let item = match.mediaItems.first {
+                    self.finish(result: RecognitionResult(
+                        title: item.title ?? "Трек",
+                        artist: item.artist ?? "",
+                        artworkURL: item.artworkURL,
+                        appleMusicID: item.appleMusicID))
+                } else {
+                    self.errorText = "Трек найден, но данных о нём нет. Попробуйте ещё раз."
+                    self.stop()
+                }
+            case .noMatch:
+                self.errorText = "Трек не узнали. Поднесите телефон ближе к источнику звука."
+                self.stop()
+            case .error(let error, _):
+                self.errorText = "Ошибка распознавания: \(error.localizedDescription)"
+                self.stop()
+            @unknown default:
+                self.stop()
+            }
+        }
+        _ = matchTask
+
+        // Страховочный таймаут.
+        timeoutTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 40_000_000_000)
+            guard let self, self.isListening else { return }
+            self.errorText = "Не дождались результата. Попробуйте ближе к источнику звука."
             self.stop()
         }
     }
@@ -85,7 +104,7 @@ final class RecognitionService: NSObject, ObservableObject {
         timeoutTask?.cancel()
         timeoutTask = nil
         if #available(iOS 17.0, *) {
-            (session as? SHManagedSession)?.stop()
+            (session as? SHManagedSession)?.cancel()
         }
         session = nil
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
@@ -95,29 +114,5 @@ final class RecognitionService: NSObject, ObservableObject {
     private func finish(result: RecognitionResult) {
         match = result
         stop()
-    }
-}
-
-// MARK: - SHSessionDelegate
-
-extension RecognitionService: SHSessionDelegate {
-    nonisolated func session(_ session: SHSession, didFind match: SHMatch) {
-        Task { @MainActor [weak self] in
-            guard let self, let item = match.mediaItems.first else { return }
-            let result = RecognitionResult(
-                title: item.title ?? "Трек",
-                artist: item.artist ?? "",
-                artworkURL: item.artworkURL,
-                appleMusicID: item.appleMusicID)
-            self.finish(result: result)
-        }
-    }
-
-    nonisolated func session(_ session: SHSession, didFailWithError error: Error) {
-        Task { @MainActor [weak self] in
-            guard let self, self.isListening else { return }
-            self.errorText = "Ошибка распознавания: \(error.localizedDescription)"
-            self.stop()
-        }
     }
 }
