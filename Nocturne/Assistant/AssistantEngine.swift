@@ -58,7 +58,7 @@ final class AssistantEngine: ObservableObject {
         case fallbackSearch(query: String)
     }
 
-    static func parse(_ input: String) -> Intent {
+    nonisolated static func parse(_ input: String) -> Intent {
         let text = input.lowercased().trimmed
         let words = text.split(separator: " ").map(String.init)
         guard !words.isEmpty else { return .fallbackSearch(query: input) }
@@ -113,7 +113,7 @@ final class AssistantEngine: ObservableObject {
         return .fallbackSearch(query: input)
     }
 
-    private static func strip(_ text: String, prefixes: [String]) -> String {
+    private nonisolated static func strip(_ text: String, prefixes: [String]) -> String {
         var result = text
         for prefix in prefixes {
             if result.hasPrefix(prefix) {

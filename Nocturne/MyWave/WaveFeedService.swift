@@ -141,7 +141,8 @@ final class WaveFeedService: ObservableObject {
             related = (try? await provider.relatedTracks(for: track, limit: count)) ?? []
         }
         let profile = RecommendationEngine.buildProfile(store: store, explorationRate: 0.3)
-        let candidates = related + await baseCandidates(seedArtists: [track.artist])
+        let more = await baseCandidates(seedArtists: [track.artist])
+        let candidates = related + more
         return RecommendationEngine.selectWave(candidates: candidates,
                                                profile: profile,
                                                count: count,

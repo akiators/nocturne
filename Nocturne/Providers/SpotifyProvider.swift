@@ -71,9 +71,13 @@ final class SpotifyProvider: MusicProvider {
                         continuation.resume(throwing: error)
                         return
                     }
-                    guard let callbackURL,
-                          let item = URLComponents(url: callbackURL, resolvingAgainstBaseURL: false)
-                              .queryItems?.first(where: { $0.name == "code" }),
+                    guard let callbackURL else {
+                        continuation.resume(throwing: ProviderError.authRequired("Spotify"))
+                        return
+                    }
+                    guard let components = URLComponents(url: callbackURL,
+                                                         resolvingAgainstBaseURL: false),
+                          let item = components.queryItems?.first(where: { $0.name == "code" }),
                           let code = item.value else {
                         continuation.resume(throwing: ProviderError.authRequired("Spotify"))
                         return
@@ -183,16 +187,20 @@ final class SpotifyProvider: MusicProvider {
     }
 
     private func mapTrack(_ item: WebSearchResponse.TrackItem) -> Track {
-        Track(provider: .spotify,
-              externalID: item.id,
-              title: item.name,
-              artist: item.artists.map(\.name).joined(separator: ", "),
-              album: item.album?.name,
-              duration: TimeInterval(item.durationMS ?? 0) / 1000,
-              artworkURL: item.album?.images?.first?.url.flatMap(URL.init(string:)),
-              streamURL: item.previewURL.flatMap(URL.init(string:)),
-              isPreview: item.previewURL != nil,
-              explicit: item.explicit ?? false)
+        var artworkURL: URL? = nil
+        if let images = item.album?.images, let first = images.first {
+            artworkURL = URL(string: first.url)
+        }
+        return Track(provider: .spotify,
+                     externalID: item.id,
+                     title: item.name,
+                     artist: item.artists.map(\.name).joined(separator: ", "),
+                     album: item.album?.name,
+                     duration: TimeInterval(item.durationMS ?? 0) / 1000,
+                     artworkURL: artworkURL,
+                     streamURL: item.previewURL.flatMap(URL.init(string:)),
+                     isPreview: item.previewURL != nil,
+                     explicit: item.explicit ?? false)
     }
 
     func search(_ query: String, limit: Int) async throws -> SearchResults {

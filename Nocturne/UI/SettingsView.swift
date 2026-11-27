@@ -30,7 +30,7 @@ struct SettingsView: View {
             .fileImporter(isPresented: $showRestoreImporter,
                           allowedContentTypes: [.json, .data],
                           allowsMultipleSelection: false) { result in
-                guard let url = result.first else { return }
+                guard let url = (try? result.get())?.first else { return }
                 do {
                     let count = try environment.backup.restore(from: url)
                     statusMessage = "Восстановлено треков: \(count)"
@@ -38,7 +38,7 @@ struct SettingsView: View {
                     statusMessage = "Ошибка восстановления: \(error.localizedDescription)"
                 }
             }
-            .background(Palette.backgroundCompat.ignoresSafeArea())
+            .background(Palette.background.ignoresSafeArea())
         }
         .navigationViewStyle(.stack)
     }
@@ -80,64 +80,89 @@ struct SettingsView: View {
     private var sourcesSection: some View {
         Section("Источники музыки") {
             ForEach(environment.providers.allProviders, id: \.id) { provider in
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack {
-                        Circle()
-                            .fill(statusColor(provider))
-                            .frame(width: 8, height: 8)
-                        Text(provider.id.displayName)
-                            .font(.system(size: 15, weight: .medium))
-                            .foregroundColor(Palette.textPrimary)
-                        Spacer()
-                        if provider.capabilities.contains(.auth) && provider.id == .spotify {
-                            spotifyAuthButtons
-                        }
-                        if provider.id == .appleMusic {
-                            Button("Разрешить") {
-                                Task { await MusicAuthorization.request() }
-                            }
-                            .font(.secondary())
-                            .foregroundColor(Palette.accent)
-                        }
-                        if provider.id == .local {
-                            Button("Импорт файлов") {
-                                NotificationCenter.default.post(name: .nocturneImportFiles, object: nil)
-                            }
-                            .font(.secondary())
-                            .foregroundColor(Palette.accent)
-                        }
-                        if provider.id == .vk {
-                            Button("Открыть VK") {
-                                if let url = URL(string: "https://vk.com/audio") {
-                                    UIApplication.shared.open(url)
-                                }
-                            }
-                            .font(.secondary())
-                            .foregroundColor(Palette.accent)
-                        }
-                        if provider.id == .spotify || provider.id == .youtubeMusic || provider.id == .soundCloud {
-                            Button("Ключ/ID") {
-                                secretPrompt = provider.id == .spotify ? "spotify_client_id"
-                                    : provider.id == .youtubeMusic ? "yt_api_key" : nil
-                                if secretPrompt == nil {
-                                    statusMessage = SoundCloudProviderHint
-                                }
-                            }
-                            .font(.secondary())
-                            .foregroundColor(Palette.accent)
-                            .opacity(provider.id == .soundCloud ? 0.4 : 1)
-                            .disabled(provider.id == .soundCloud)
-                        }
-                    }
-                    Text(provider.setupHint)
-                        .font(.caption())
-                        .foregroundColor(Palette.textSecondary)
-                    Text(capabilitiesText(provider.capabilities))
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(Palette.accent.opacity(0.8))
-                }
-                .padding(.vertical, 4)
+                providerRow(provider)
             }
+        }
+    }
+
+    private func providerRow(_ provider: MusicProvider) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                providerHeader(provider)
+            }
+            Text(provider.setupHint)
+                .font(.caption())
+                .foregroundColor(Palette.textSecondary)
+            Text(capabilitiesText(provider.capabilities))
+                .font(.system(size: 10, weight: .medium))
+                .foregroundColor(Palette.accent.opacity(0.8))
+        }
+        .padding(.vertical, 4)
+    }
+
+    @ViewBuilder
+    private func providerHeader(_ provider: MusicProvider) -> some View {
+        Circle()
+            .fill(statusColor(provider))
+            .frame(width: 8, height: 8)
+        Text(provider.id.displayName)
+            .font(.system(size: 15, weight: .medium))
+            .foregroundColor(Palette.textPrimary)
+        Spacer()
+        providerActions(provider)
+    }
+
+    @ViewBuilder
+    private func providerActions(_ provider: MusicProvider) -> some View {
+        if provider.capabilities.contains(.auth) && provider.id == .spotify {
+            spotifyAuthButtons
+        }
+        if provider.id == .appleMusic {
+            Button("Разрешить") {
+                Task { await MusicAuthorization.request() }
+            }
+            .font(.secondary())
+            .foregroundColor(Palette.accent)
+        }
+        if provider.id == .local {
+            Button("Импорт файлов") {
+                NotificationCenter.default.post(name: .nocturneImportFiles, object: nil)
+            }
+            .font(.secondary())
+            .foregroundColor(Palette.accent)
+        }
+        if provider.id == .vk {
+            Button("Открыть VK") {
+                if let url = URL(string: "https://vk.com/audio") {
+                    UIApplication.shared.open(url)
+                }
+            }
+            .font(.secondary())
+            .foregroundColor(Palette.accent)
+        }
+        if needsManualKey(provider) {
+            Button("Ключ/ID") {
+                secretPrompt = keyAccount(for: provider.id)
+                if secretPrompt == nil {
+                    statusMessage = SoundCloudProviderHint
+                }
+            }
+            .font(.secondary())
+            .foregroundColor(Palette.accent)
+            .opacity(provider.id == .soundCloud ? 0.4 : 1)
+            .disabled(provider.id == .soundCloud)
+        }
+    }
+
+    private func needsManualKey(_ provider: MusicProvider) -> Bool {
+        provider.id == .spotify || provider.id == .youtubeMusic || provider.id == .soundCloud
+    }
+
+    private func keyAccount(for id: ProviderID) -> String? {
+        switch id {
+        case .spotify: return "spotify_client_id"
+        case .youTubeMusic: return "yt_api_key"
+        default: return nil
         }
     }
 
@@ -304,10 +329,6 @@ struct SettingsView: View {
         }
         .navigationViewStyle(.stack)
     }
-}
-
-extension Color {
-    static let backgroundCompat = Palette.background
 }
 
 extension Notification.Name {

@@ -55,7 +55,7 @@ final class PlaylistImporter {
     }
 
     /// M3U: строки #EXTINF:duration,Artist - Title
-    static func parseM3U(_ text: String) -> [(artist: String, title: String)] {
+    nonisolated static func parseM3U(_ text: String) -> [(artist: String, title: String)] {
         var result: [(artist: String, title: String)] = []
         for line in text.components(separatedBy: .newlines) {
             let trimmed = line.trimmed
@@ -75,7 +75,7 @@ final class PlaylistImporter {
     }
 
     /// CSV: title,artist (порядок или title;artist)
-    static func parseCSV(_ text: String) -> [(artist: String, title: String)] {
+    nonisolated static func parseCSV(_ text: String) -> [(artist: String, title: String)] {
         var result: [(artist: String, title: String)] = []
         for line in text.components(separatedBy: .newlines).dropFirst() {
             let parts = line.components(separatedBy: ",").map(\.trimmed)
@@ -86,7 +86,7 @@ final class PlaylistImporter {
         return result
     }
 
-    static func parseJSON(_ text: String) -> [(artist: String, title: String)] {
+    nonisolated static func parseJSON(_ text: String) -> [(artist: String, title: String)] {
         struct ExportEntry: Decodable { let artist: String?; let title: String? }
         struct Export: Decodable { let tracks: [ExportEntry]? }
         guard let data = text.data(using: .utf8),
