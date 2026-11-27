@@ -155,7 +155,7 @@ struct SettingsView: View {
     }
 
     private func needsManualKey(_ provider: MusicProvider) -> Bool {
-        provider.id == .spotify || provider.id == .youtubeMusic || provider.id == .soundCloud
+        provider.id == .spotify || provider.id == .youTubeMusic || provider.id == .soundCloud
     }
 
     private func keyAccount(for id: ProviderID) -> String? {
