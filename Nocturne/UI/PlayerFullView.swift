@@ -365,6 +365,13 @@ struct PlayerSettingsSheet: View {
     var body: some View {
         NavigationView {
             Form {
+                if player.isMusicKitPlayback {
+                    Section {
+                        Text("Этот трек играет Apple Music (полный стрим). Эквалайзер, скорость и crossfade на него не действуют — плеером управляет система.")
+                            .font(.caption())
+                            .foregroundColor(Palette.accent)
+                    }
+                }
                 Section("Скорость воспроизведения") {
                     HStack {
                         Text("0.5×").font(.numeric())

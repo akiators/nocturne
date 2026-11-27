@@ -43,6 +43,10 @@ final class PlayerController: ObservableObject {
 
     // MARK: - Internal
 
+    /// Режим Apple Music: стрим ведёт системный ApplicationMusicPlayer (подписчики).
+    @Published private(set) var isMusicKitPlayback = false
+    private let musicKit = MusicKitPlaybackController()
+
     private var currentVoice = 0
     private var originalQueue: [Track] = []
     private var playbackStartReference: CFAbsoluteTime = 0
@@ -100,7 +104,11 @@ final class PlayerController: ObservableObject {
 
     func pause() {
         guard isPlaying else { return }
-        engine.pause(voiceIndex: currentVoice)
+        if isMusicKitPlayback {
+            musicKit.pause()
+        } else {
+            engine.pause(voiceIndex: currentVoice)
+        }
         freezeProgress()
         isPlaying = false
         updateNowPlaying()
@@ -109,7 +117,11 @@ final class PlayerController: ObservableObject {
 
     func resume() {
         guard currentTrack != nil, !isPlaying else { return }
-        engine.resume(voiceIndex: currentVoice)
+        if isMusicKitPlayback {
+            musicKit.resume()
+        } else {
+            engine.resume(voiceIndex: currentVoice)
+        }
         playbackStartReference = CFAbsoluteTimeGetCurrent()
         isPlaying = true
         updateNowPlaying()
@@ -172,6 +184,13 @@ final class PlayerController: ObservableObject {
         playbackStartReference = CFAbsoluteTimeGetCurrent()
         currentTime = target
 
+        if isMusicKitPlayback {
+            musicKit.seek(to: target)
+            updateNowPlaying()
+            persistState()
+            return
+        }
+
         if let fileURL = activeFileURL {
             do {
                 try engine.play(fileURL: fileURL,
@@ -233,6 +252,10 @@ final class PlayerController: ObservableObject {
     }
 
     func stopEverything() {
+        if isMusicKitPlayback {
+            musicKit.pause()
+            isMusicKitPlayback = false
+        }
         engine.stop(voiceIndex: 0)
         engine.stop(voiceIndex: 1)
         isPlaying = false
@@ -372,6 +395,28 @@ final class PlayerController: ObservableObject {
 
         // Учёт прослушивания предыдущего трека.
         logPlayForCurrentTrack()
+
+        // Apple Music: полное воспроизведение для подписчиков через ApplicationMusicPlayer.
+        if track.provider == .appleMusic, musicKit.isAuthorized,
+           let song = await musicKit.resolveSong(for: track),
+           await musicKit.canPlayCatalog() {
+            guard generation == loadGeneration else { return }
+            isMusicKitPlayback = true
+            engine.stop(voiceIndex: 0)
+            engine.stop(voiceIndex: 1)
+            currentTrack = track
+            currentTime = 0
+            playbackOffset = 0
+            playbackStartReference = CFAbsoluteTimeGetCurrent()
+            isPlaying = true
+            isLoadingTrack = false
+            store.bumpArtist(track.artist, delta: 0.05)
+            startProgressTimer()
+            persistState()
+            await musicKit.play(song: song)
+            return
+        }
+        isMusicKitPlayback = false
 
         // Резолв источника: офлайн-загрузка → локальный файл → кэш → сеть.
         var fileURL: URL?
@@ -520,6 +565,19 @@ final class PlayerController: ObservableObject {
 
     private func tickProgress() {
         guard isPlaying, currentTrack != nil else { return }
+
+        if isMusicKitPlayback {
+            // Стрим ведёт системный плеер — читаем его позицию.
+            let musicKitTime = musicKit.playbackTime
+            if musicKitTime > 0 { currentTime = musicKitTime }
+            let limit = currentTrack?.duration ?? 0
+            if limit > 0, currentTime >= limit - 0.7, currentTime > 3 {
+                handleVoiceFinished(natural: true)
+                return
+            }
+            return
+        }
+
         let elapsed = playbackOffset + (CFAbsoluteTimeGetCurrent() - playbackStartReference)
         let limit = currentTrack?.duration ?? 0
         if limit > 0 && elapsed > limit + 3 {
@@ -606,6 +664,10 @@ final class PlayerController: ObservableObject {
     }
 
     private func updateNowPlaying(clear: Bool = false) {
+        // В режиме Apple Music Now Playing ведёт ApplicationMusicPlayer — не мешаем.
+        if isMusicKitPlayback && !clear {
+            return
+        }
         let center = MPNowPlayingInfoCenter.default()
         if clear || currentTrack == nil {
             center.nowPlayingInfo = nil

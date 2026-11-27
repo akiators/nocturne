@@ -27,6 +27,7 @@ targets:
         MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: "1"
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        CODE_SIGN_ENTITLEMENTS: Nocturne/Nocturne.entitlements
         CODE_SIGNING_ALLOWED: "NO"
     info:
       path: Nocturne/Info.plist

@@ -19,6 +19,12 @@ struct EqualizerSheet: View {
         NavigationView {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
+                    if player.isMusicKitPlayback {
+                        Text("Текущий трек играет Apple Music — эквалайзер применяется только к нашим источникам (локальные файлы, preview).")
+                            .font(.caption())
+                            .foregroundColor(Palette.accent)
+                            .padding(.horizontal, Metrics.hPadding)
+                    }
                     enabledToggle
                     presetPicker
                     bandSliders
