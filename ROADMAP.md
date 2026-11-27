@@ -1,30 +1,31 @@
 # ROADMAP
 
-## v0.1 — ядро (текущая ветка development)
+## v0.1 — ядро ✅ (2026-11-27)
 - [x] Каркас проекта (XcodeGen), дизайн-система, SQLite-хранилище
 - [x] 7 провайдеров + агрегированный поиск
 - [x] Плеер: очередь, shuffle/repeat, crossfade, EQ (кастом + per-track), скорость, таймер сна, now playing, восстановление сессии
 - [x] My Wave: скоринг, миксы, радио, автодобор
 - [x] Тексты: LRCLIB, перевод, поиск по тексту, заметки, Genius-факты
 - [x] Ассистент (интент-движок), статистика, импорт/экспорт, загрузки
-- [x] Unit-тесты, CI (build+test+release)
+- [x] Unit-тесты (31), CI (build+test+release)
 
-## v0.2 — доводка
-- [ ] Live Activities + Dynamic Island (widget extension, ActivityKit, iOS 16.1+ guard)
-- [ ] Полное воспроизведение Apple Music через ApplicationMusicPlayer (для подписчиков)
-- [ ] Биографии артистов (Genius artists + MusicKit artists)
+## v0.2 — приоритеты пользователя ✅ (2026-11-27)
+- [x] 1. Apple Music: полное воспроизведение через ApplicationMusicPlayer (подписчики; fallback — preview)
+- [x] 2. Live Activities + Dynamic Island (widget extension, экран блокировки)
+- [x] 3. ShazamKit: распознавание музыки (SHManagedSession, iOS 17+; история; интеграции)
+- [x] 4. Биографии артистов (Genius + кэш; ArtistSheet; интент ассистента)
+- [x] 5. Unsigned IPA в CI (артефакт по workflow_dispatch/тегу) + инструкция установки/подписи
+
+## v0.3 — следующее
 - [ ] Память ассистента и история чата (SQLite)
-- [ ] Распознавание музыки (ShazamKit) — по нажатию, локально
 - [ ] Управление навигацией (порядок вкладок), темы акцента
-
-## v0.3 — источники
+- [ ] Кнопки управления в Live Activity (AppIntents, iOS 17)
 - [ ] Яндекс Музыка: deep-link + поиск через публичный web-каталог (если доступен)
-- [ ] Spotify App Remote SDK (полный стриминг для Premium, отдельная цель — соглашение Spotify)
-- [ ] OGG/Opus в локальных файлах (проверка декодера iOS, конвертер при импорте)
-- [ ] Импорт экспортов Яндекс Музыки/VK (файлы, не API)
+- [ ] Spotify App Remote SDK (полный стриминг для Premium)
+- [ ] OGG/Opus в локальных файлах (проверка декодера iOS)
 
 ## v1.0 — релиз
-- [ ] Подписанный IPA (сертификаты в CI-секреты, автоматическая сборка)
+- [ ] Подписанный IPA (сертификаты в CI-секреты — шаблон в DEVELOPMENT.md)
 - [ ] Оптимизация: профилирование запуска (<400 мс), RAM, батчинг SQLite
 - [ ] Локализация EN
 - [ ] TestFlight

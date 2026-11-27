@@ -105,9 +105,18 @@
 | Состояния загрузки/пустые | ✅ | ✅ shimmer + empty states | ✅ |
 | Liquid Glass (iOS 26) | — | 🚧 материал `.thinMaterial` везде; прямой `.glassEffect` добавится с доступностью Xcode 26 SDK в CI | 🚧 |
 
-## 8. Сводка
+## 8. Сводка (обновлено 2026-11-27, v0.2)
 
-- **Implemented: 55+** функций, все Plus/Beyond-гейты Mimose закрыты бесплатными аналогами.
-- **Blocked (внешние): 6** — все задокументированы в коде и UI: полные стримы VK/YT/SoundCloud, FLAC Deezer, полный стрим Spotify без App Remote, клипы 4K.
-- **Planned: 2** — Live Activities/Dynamic Island (widget ext), биографии артистов.
+- **Implemented: 60+** функций; все Plus/Beyond-гейты Mimose закрыты бесплатными аналогами.
+- **Blocked (внешние): 6** — задокументированы в коде и UI: полные стримы VK/YT/SoundCloud, FLAC Deezer, полный стрим Spotify без App Remote, клипы 4K.
 - Никаких подписок, квот, дневных лимитов и премиум-гейтов в Nocturne нет.
+
+## 9. v0.2 (2026-11-27, по приоритетам пользователя)
+
+| Функция | Статус | Детали |
+|---|---|---|
+| Apple Music — полное воспроизведение | ✅ Implemented | `ApplicationMusicPlayer` для подписчиков (`MusicSubscription.canPlayCatalogContent`); без подписки — 30-сек preview своим движком; EQ/скорость/crossfade честно помечены «не действуют на Apple Music» |
+| Live Activities + Dynamic Island | ✅ Implemented | widget-extension `NocturneWidgets` (16.1), атрибуты в `Shared/`, менеджер с троттлингом 4 с и обложкой; iOS 15-таргет не затронут |
+| ShazamKit — распознавание | ✅ Implemented | `SHManagedSession` (iOS 17+, API проверен по докам Apple: `await result()` + `cancel()`); iOS 15–16 — честное сообщение; право микрофона + `com.apple.developer.shazam-services`; история в kv; интеграции: поиск, ассистент, handoff в Apple Music |
+| Биографии артистов | ✅ Implemented | Genius `/artists/{id}` (plain) с кэшем 30 дней; `ArtistSheet` с аватаром, био, топ-треками и радио; входы: тап по артисту в плеере, меню трека, интент ассистента «расскажи о…» |
+| IPA | ✅ Implemented | CI-задача `build-ipa`: unsigned архив → Payload → `nocturne-unsigned-ipa` артефакт (запуск: workflow_dispatch или тег v*); инструкция установки (Sideloadly/AltStore) и путь к подписанному IPA через secrets — в DEVELOPMENT.md |
