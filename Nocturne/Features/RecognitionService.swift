@@ -3,8 +3,8 @@ import ShazamKit
 import AVFoundation
 
 /// Распознавание музыки через ShazamKit (бесплатно, локально по звуку вокруг).
-/// Использует SHManagedSession (iOS 16+): микрофон и буферизация под его контролем.
-/// На iOS 15 функция честно сообщает о недоступности.
+/// Использует SHManagedSession (iOS 17+): микрофон и буферизация под его контролем.
+/// На более старых версиях функция честно сообщает о недоступности.
 /// История хранится снаружи (UI пишет её в kv основного хранилища).
 @MainActor
 final class RecognitionService: NSObject, ObservableObject {
@@ -20,11 +20,12 @@ final class RecognitionService: NSObject, ObservableObject {
     @Published var match: RecognitionResult?
     @Published var errorText: String?
 
-    private var session: SHManagedSession?
+    /// SHManagedSession доступен с iOS 17 — храним type-erased, работаем под #available.
+    private var session: AnyObject?
     private var timeoutTask: Task<Void, Never>?
 
     var isSupported: Bool {
-        if #available(iOS 16.0, *) { return true }
+        if #available(iOS 17.0, *) { return true }
         return false
     }
 
@@ -37,7 +38,7 @@ final class RecognitionService: NSObject, ObservableObject {
     func start() {
         guard !isListening else { return }
         guard isSupported else {
-            errorText = "Распознавание музыки доступно на iOS 16 и новее."
+            errorText = "Распознавание музыки доступно на iOS 17 и новее."
             return
         }
         match = nil
@@ -55,7 +56,7 @@ final class RecognitionService: NSObject, ObservableObject {
     }
 
     private func beginListening() {
-        guard #available(iOS 16.0, *) else { return }
+        guard #available(iOS 17.0, *) else { return }
         let audio = AVAudioSession.sharedInstance()
         do {
             try audio.setCategory(.playAndRecord, mode: .default, options: [.duckOthers])
@@ -83,8 +84,8 @@ final class RecognitionService: NSObject, ObservableObject {
     func stop() {
         timeoutTask?.cancel()
         timeoutTask = nil
-        if #available(iOS 16.0, *) {
-            session?.stop()
+        if #available(iOS 17.0, *) {
+            (session as? SHManagedSession)?.stop()
         }
         session = nil
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
