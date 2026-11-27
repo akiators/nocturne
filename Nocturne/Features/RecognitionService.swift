@@ -3,7 +3,8 @@ import ShazamKit
 import AVFoundation
 
 /// Распознавание музыки через ShazamKit (бесплатно, локально по звуку вокруг).
-/// Требует право доступа к микрофону; право ShazamKit в entitlements.
+/// Использует SHManagedSession (iOS 16+): микрофон и буферизация под его контролем.
+/// На iOS 15 функция честно сообщает о недоступности.
 /// История хранится снаружи (UI пишет её в kv основного хранилища).
 @MainActor
 final class RecognitionService: NSObject, ObservableObject {
@@ -19,9 +20,13 @@ final class RecognitionService: NSObject, ObservableObject {
     @Published var match: RecognitionResult?
     @Published var errorText: String?
 
-    private var session: SHSession?
-    private let audioEngine = AVAudioEngine()
+    private var session: SHManagedSession?
     private var timeoutTask: Task<Void, Never>?
+
+    var isSupported: Bool {
+        if #available(iOS 16.0, *) { return true }
+        return false
+    }
 
     override init() {
         super.init()
@@ -31,6 +36,10 @@ final class RecognitionService: NSObject, ObservableObject {
 
     func start() {
         guard !isListening else { return }
+        guard isSupported else {
+            errorText = "Распознавание музыки доступно на iOS 16 и новее."
+            return
+        }
         match = nil
         errorText = nil
         AVAudioSession.sharedInstance().requestRecordPermission { [weak self] granted in
@@ -45,18 +54,8 @@ final class RecognitionService: NSObject, ObservableObject {
         }
     }
 
-    func stop() {
-        timeoutTask?.cancel()
-        timeoutTask = nil
-        cleanupAudio()
-        isListening = false
-    }
-
     private func beginListening() {
-        let session = SHSession()
-        session.delegate = self
-        self.session = session
-
+        guard #available(iOS 16.0, *) else { return }
         let audio = AVAudioSession.sharedInstance()
         do {
             try audio.setCategory(.playAndRecord, mode: .default, options: [.duckOthers])
@@ -66,35 +65,30 @@ final class RecognitionService: NSObject, ObservableObject {
             return
         }
 
-        let input = audioEngine.inputNode
-        let format = input.outputFormat(forBus: 0)
-        input.removeTap(onBus: 0)
-        input.installTap(onBus: 0, bufferSize: 8192, format: format) { [weak session] buffer, _ in
-            session?.append(buffer)
-        }
-        do {
-            try audioEngine.start()
-        } catch {
-            errorText = "Микрофон недоступен: \(error.localizedDescription)"
-            cleanupAudio()
-            return
-        }
+        let session = SHManagedSession()
+        session.delegate = self
+        self.session = session
+        session.start()
         isListening = true
 
-        // Автостоп: ShazamKit сам не завершит прослушивание.
+        // Страховочный таймаут: если совпадения нет — сообщаем и останавливаемся.
         timeoutTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 15_000_000_000)
+            try? await Task.sleep(nanoseconds: 20_000_000_000)
             guard let self, self.isListening else { return }
-            self.errorText = "Записали 10 секунд, но трек не узнали. Попробуйте ближе к источнику звука."
+            self.errorText = "Записали 20 секунд, но трек не узнали. Попробуйте ближе к источнику звука."
             self.stop()
         }
     }
 
-    private func cleanupAudio() {
-        audioEngine.inputNode.removeTap(onBus: 0)
-        audioEngine.stop()
+    func stop() {
+        timeoutTask?.cancel()
+        timeoutTask = nil
+        if #available(iOS 16.0, *) {
+            session?.stop()
+        }
         session = nil
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        isListening = false
     }
 
     private func finish(result: RecognitionResult) {

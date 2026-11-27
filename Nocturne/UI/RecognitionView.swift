@@ -148,7 +148,9 @@ struct RecognitionView: View {
         guard let track = results.tracks.first else {
             if let appleID = match.appleMusicID,
                let url = URL(string: "https://music.apple.com/lookup?isSong=\(appleID)") {
-                UIApplication.shared.open(url)
+                await MainActor.run {
+                    UIApplication.shared.open(url)
+                }
             }
             return
         }
