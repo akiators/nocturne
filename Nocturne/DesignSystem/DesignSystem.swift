@@ -284,9 +284,10 @@ struct CoverImage: View {
 
 // MARK: - Text field style
 
-struct StyledTextFieldStyle: TextFieldStyle {
-    func _body(configuration: TextField<TextLabel>) -> some View {
-        configuration
+extension View {
+    /// Единый стиль полей ввода (аналог TextFieldStyle, совместим со всеми SDK).
+    func styledField() -> some View {
+        self
             .padding(12)
             .background(Palette.surface)
             .cornerRadius(Metrics.cornerM)

@@ -1,6 +1,7 @@
 import Foundation
 
 /// Объединённый поиск по всем активным источникам.
+@MainActor
 final class SearchService {
     private let registry: ProviderRegistry
     private let store: LibraryStore

@@ -49,6 +49,13 @@ struct RootView: View {
             }
         }
         .background(Palette.background.ignoresSafeArea())
+        .onAppear {
+            // My Wave автоматически добирает треки, когда очередь близка к концу.
+            let wave = environment.wave
+            player.queueRefill = { currentQueue in
+                await wave.extendQueue(currentQueue: currentQueue)
+            }
+        }
         .fullScreenCover(isPresented: $showFullPlayer) {
             PlayerFullView()
         }

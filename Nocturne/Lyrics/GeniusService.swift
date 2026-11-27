@@ -4,6 +4,7 @@ import Foundation
 /// из https://genius.com/api-clients в настройках; токен хранится в Keychain).
 /// Даёт «смысл трека»: описание песни из карточки Genius — легальная замена
 /// scraping-аннотациям Mimose Plus. Плюс локальные заметки пользователя (LibraryStore).
+@MainActor
 final class GeniusService {
     private let settings: SettingsStore
     private let client = HTTPClient.shared
@@ -23,7 +24,7 @@ final class GeniusService {
                 let url: String?
                 let primaryArtist: PrimaryArtist?
                 enum CodingKeys: String, CodingKey {
-                    case id, url, result
+                    case id, url
                     case fullTitle = "full_title"
                     case primaryArtist = "primary_artist"
                 }
@@ -67,7 +68,7 @@ final class GeniusService {
                 let producerArtists: [ArtistBox]?
                 struct ArtistBox: Decodable { let name: String? }
                 enum CodingKeys: String, CodingKey {
-                    case description, song
+                    case description
                     case releaseDate = "release_date"
                     case producerArtists = "producer_artists"
                 }

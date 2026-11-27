@@ -2,6 +2,7 @@ import Foundation
 
 /// Импорт плейлистов: файлы M3U/CSV/JSON и ссылки (Deezer — без ключей,
 /// Spotify — при настроенном Client ID). VK/Яндекс импорт Blocked (закрытые API).
+@MainActor
 final class PlaylistImporter {
     private let store: LibraryStore
     private let registry: ProviderRegistry

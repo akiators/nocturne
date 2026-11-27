@@ -9,6 +9,7 @@ import Security
 /// Воспроизведение: 30-сек preview (если есть в ответе API) + handoff `spotify:track:`.
 /// Полный стриминг чужих потоков не предоставляется Spotify сторонним приложениям
 /// без App Remote SDK — остаётся handoff, что честно и легально.
+@MainActor
 final class SpotifyProvider: MusicProvider {
     let id: ProviderID = .spotify
     let capabilities: ProviderCapabilities = [.search, .previewPlayback, .playlistImport, .relatedTracks, .handoff, .auth]

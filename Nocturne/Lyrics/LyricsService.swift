@@ -2,6 +2,7 @@ import Foundation
 
 /// Сервис текстов: LRCLIB (открытый бесплатный API), кэш, перевод (LibreTranslate),
 /// поиск трека по строке текста. Всё бесплатно, без квот.
+@MainActor
 final class LyricsService {
     private let store: LibraryStore
     private let settings: SettingsStore
