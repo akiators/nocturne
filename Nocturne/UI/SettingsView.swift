@@ -283,7 +283,7 @@ struct SettingsView: View {
                     .font(.secondary())
                     .foregroundColor(Palette.textSecondary)
                 TextField("Вставьте значение", text: $secretInput)
-                    .textFieldStyle(StyledTextFieldStyle())
+                    .styledField()
                     .autocorrectionDisabled(true)
                 PrimaryButton(title: "Сохранить") {
                     settings.setSecret(secretInput.trimmed, account: prompt.account)

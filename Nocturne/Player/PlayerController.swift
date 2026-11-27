@@ -619,7 +619,6 @@ final class PlayerController: ObservableObject {
             MPMediaItemPropertyPlaybackDuration: currentTrack?.duration ?? 0,
             MPNowPlayingInfoPropertyElapsedPlaybackTime: currentTime,
             MPNowPlayingInfoPropertyPlaybackRate: isPlaying ? speed : 0,
-            MPNowPlayingInfoPropertyAudioQueueCount: queue.count,
             MPNowPlayingInfoPropertyPlaybackQueueIndex: queueIndex
         ]
         if let artworkURL = currentTrack?.artworkURL {

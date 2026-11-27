@@ -49,7 +49,7 @@ final class LocalFilesProvider: MusicProvider {
 
     private func makeTrack(for fileURL: URL, originalName: String) throws -> Track {
         let file = try AVAudioFile(forReading: fileURL)
-        let duration = file.length / file.processingFormat.sampleRate
+        let duration = Double(file.length) / file.processingFormat.sampleRate
         let parts = originalName.components(separatedBy: " - ")
         let artist = parts.count >= 2 ? parts[0].trimmed : "Локальный файл"
         let title = parts.count >= 2 ? parts.dropFirst().joined(separator: " - ").trimmed : originalName

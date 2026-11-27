@@ -22,7 +22,7 @@ final class SearchService {
         let q = query.trimmed
         guard !q.isEmpty else { return [] }
 
-        await withTaskGroup(of: ProviderOutcome.self) { group in
+        return await withTaskGroup(of: ProviderOutcome.self) { group in
             for provider in providers {
                 group.addTask {
                     do {

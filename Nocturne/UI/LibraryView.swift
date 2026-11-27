@@ -77,7 +77,7 @@ struct LibraryView: View {
             .fileImporter(isPresented: $showFileImporter,
                           allowedContentTypes: [.plainText, .text, .json, .data],
                           allowsMultipleSelection: false) { result in
-                guard let url = result.first else { return }
+                guard let url = (try? result.get())?.first else { return }
                 do {
                     let playlist = try environment.importer.importFromFile(url: url)
                     importStatus = "Импорт начат: \(playlist.name). Треки подбираются в источниках."
@@ -227,7 +227,7 @@ struct LibraryView: View {
         NavigationView {
             VStack(spacing: 16) {
                 TextField("Название вашего плейлиста", text: $newPlaylistName)
-                    .textFieldStyle(StyledTextFieldStyle())
+                    .styledField()
                     .padding(.horizontal, Metrics.hPadding)
                 PrimaryButton(title: "Создать") {
                     let name = newPlaylistName.trimmed
@@ -257,7 +257,7 @@ struct LibraryView: View {
         NavigationView {
             VStack(alignment: .leading, spacing: 14) {
                 TextField("Вставьте ссылку на плейлист…", text: $importURLText)
-                    .textFieldStyle(StyledTextFieldStyle())
+                    .styledField()
                     .autocorrectionDisabled(true)
                     .keyboardType(.URL)
                 Text("Поддерживаются плейлисты Deezer (без аккаунта) и Spotify (нужен настроенный Client ID).")
