@@ -133,13 +133,10 @@ final class LibraryStore {
     }
 
     func searchTracks(_ query: String) -> [Track] {
-        let q = "%\(query.lowercased())%"
-        var result: [Track] = []
-        try? db.query(
-            "SELECT \(Self.trackColumns) FROM tracks WHERE lower(title) LIKE ? OR lower(artist) LIKE ? OR lower(COALESCE(album,'')) LIKE ? LIMIT 200",
-            read: { s in if let t = self.track(from: s) { result.append(t) } },
-            bind: { s in s.bindText(1, q); s.bindText(2, q); s.bindText(3, q) })
-        return result
+        // Фильтр на стороне Swift: SQLite lower() не обрабатывает кириллицу.
+        let q = query.lowercased().trimmed
+        guard !q.isEmpty else { return [] }
+        return allTracks().filter { $0.searchKey.contains(q) || ($0.album?.lowercased() ?? "").contains(q) }
     }
 
     func trackCount() -> Int {
@@ -200,8 +197,10 @@ final class LibraryStore {
 
     func favoriteTracks() -> [Track] {
         var result: [Track] = []
+        // Колонки квалифицированы: added_at есть в обеих таблицах (иначе SQL-ошибка).
         try? db.query(
-            "SELECT \(Self.trackColumns) FROM tracks t JOIN favorites f ON f.track_id = t.id ORDER BY f.added_at DESC",
+            "SELECT t.id, t.provider, t.external_id, t.title, t.artist, t.album, t.duration, t.artwork, t.stream, t.is_preview, t.year, t.genre, t.explicit, t.added_at " +
+            "FROM tracks t JOIN favorites f ON f.track_id = t.id ORDER BY f.added_at DESC",
             read: { s in if let t = self.track(from: s) { result.append(t) } })
         return result
     }
@@ -209,7 +208,8 @@ final class LibraryStore {
     func dislikedTracks() -> [Track] {
         var result: [Track] = []
         try? db.query(
-            "SELECT \(Self.trackColumns) FROM tracks t JOIN dislikes d ON d.track_id = t.id ORDER BY d.added_at DESC",
+            "SELECT t.id, t.provider, t.external_id, t.title, t.artist, t.album, t.duration, t.artwork, t.stream, t.is_preview, t.year, t.genre, t.explicit, t.added_at " +
+            "FROM tracks t JOIN dislikes d ON d.track_id = t.id ORDER BY d.added_at DESC",
             read: { s in if let t = self.track(from: s) { result.append(t) } })
         return result
     }
@@ -569,12 +569,13 @@ final class LibraryStore {
     }
 
     func bumpArtist(_ artist: String, delta: Double) {
+        let key = artist.lowercased()
         try? db.run("""
             INSERT INTO artist_affinity(artist, score, updated_at) VALUES(?,?,?)
             ON CONFLICT(artist) DO UPDATE SET score = MAX(-5, MIN(10, score + ?)), updated_at = ?
             """,
             { s in
-                s.bindText(1, artist)
+                s.bindText(1, key)
                 s.bindDouble(2, delta)
                 s.bindDouble(3, Date().timeIntervalSince1970)
                 s.bindDouble(4, delta)

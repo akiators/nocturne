@@ -102,22 +102,22 @@ enum RecommendationEngine {
 
         var result: [Track] = []
         var usedArtists: [String: Int] = [:]
-        var consecutiveSameArtist = 0
-        var lastArtist: String?
 
         for (track, _) in scored {
             guard result.count < count else { break }
 
             let artistKey = track.artist.lowercased()
-            if artistKey == lastArtist {
-                if consecutiveSameArtist >= maxSameArtistConsecutive { continue }
-                consecutiveSameArtist += 1
-            } else {
-                consecutiveSameArtist = 1
-                lastArtist = artistKey
-            }
+            // Лимит на артиста в целом.
             if (usedArtists[artistKey, default: 0]) >= 4 {
-                // Слишком много одного артиста в волне — пропускаем.
+                continue
+            }
+            // Диверсификация: не допускать N подряд треков одного артиста
+            // (окно по уже выбранным, а не по позиции в сортировке — иначе
+            // отклонённый трек блокировал бы всех следующих «своих»).
+            if result.count >= maxSameArtistConsecutive,
+               (0..<maxSameArtistConsecutive).allSatisfy({ offset in
+                   result[result.count - 1 - offset].artist.lowercased() == artistKey
+               }) {
                 continue
             }
             usedArtists[artistKey, default: 0] += 1

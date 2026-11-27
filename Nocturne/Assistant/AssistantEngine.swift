@@ -66,18 +66,18 @@ final class AssistantEngine: ObservableObject {
         func hasAny(_ prefixes: [String]) -> Bool { prefixes.contains { text.hasPrefix($0) } }
         func contains(_ needles: [String]) -> Bool { needles.contains { text.contains($0) } }
 
-        // Пауза/стоп раньше play («останови» тоже play-подобное)
-        if contains(["пауза", "останови", "стоп"]) && !contains(["собери", "плейлист"]) {
+        // Пауза/стоп раньше play («останови» тоже play-подобное). Стемы для морфологии RU.
+        if contains(["пауз", "останови", "стоп", "pause", "stop"]) && !contains(["собери", "плейлист"]) {
             return .pause
         }
         if contains(["продолж", "возобнови"]) { return .resume }
-        if contains(["следующий", "дальше трек", "next", "скип", "пропусти"]) { return .next }
+        if contains(["следующ", "дальше трек", "next", "скип", "пропуст"]) { return .next }
         if contains(["предыдущ", "назад"]) { return .previous }
 
         if contains(["повтор"]) || contains(["repeat"]) {
             if contains(["выключ", "отключ", "off", "убрать"]) { return .toggleRepeat(mode: .off) }
-            if contains(["один трек", "один", "one", "этот трек"]) { return .toggleRepeat(mode: .one) }
-            if contains(["всю очередь", "все", "queue", "all"]) { return .toggleRepeat(mode: .all) }
+            if contains(["один трек", "одно", "один", "этот трек", "one"]) { return .toggleRepeat(mode: .one) }
+            if contains(["всю очередь", "всех", "все", "queue", "all"]) { return .toggleRepeat(mode: .all) }
             return .toggleRepeat(mode: nil)
         }
         if contains(["перемеш", "шаффл", "shuffle", "случайный порядок"]) { return .toggleShuffle }

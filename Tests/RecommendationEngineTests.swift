@@ -55,21 +55,21 @@ final class RecommendationEngineTests: XCTestCase {
     func testSelectWaveExcludesAndDiversifies() {
         let profile = makeProfile()
         var candidates: [Track] = []
-        for index in 0..<10 {
-            candidates.append(makeTrack("t\(index)", "Likes"))
-        }
-        for index in 0..<10 {
-            candidates.append(makeTrack("u\(index)", "Other"))
+        let artists = ["Likes", "Other", "Third", "Fourth"]
+        for artist in artists {
+            for index in 0..<5 {
+                candidates.append(makeTrack("\(artist.prefix(2))\(index)", artist))
+            }
         }
 
         let wave = RecommendationEngine.selectWave(candidates: candidates,
                                                    profile: profile,
                                                    count: 8,
                                                    exploration: 0.1,
-                                                   excluded: ["deezer:t0"],
+                                                   excluded: ["deezer:Li0"],
                                                    seed: 42)
         XCTAssertEqual(wave.count, 8)
-        XCTAssertFalse(wave.contains { $0.id == "deezer:t0" })
+        XCTAssertFalse(wave.contains { $0.id == "deezer:Li0" })
 
         // Не более 2 подряд одного артиста
         for (index, track) in wave.enumerated() where index >= 2 {
